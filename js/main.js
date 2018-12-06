@@ -59,22 +59,23 @@ export default class Main {
   // 全局碰撞检测
   collisionDetection() {
     let that = this
-
+    
     databus.bullets.forEach((bullet) => {
       for ( let i = 0, il = databus.enemys.length; i < il;i++ ) {
         let enemy = databus.enemys[i]
 
-        if ( !enemy.isPlaying && enemy.isCollideWith(bullet) ) {
+        if (!enemy.isPlaying && enemy.isCollideWith(bullet)) {
           enemy.playAnimation()
           that.music.playExplosion()
 
           bullet.visible = false
-          databus.score  += 1
+          databus.score += 1
 
           break
         }
       }
     })
+    
 
     for ( let i = 0, il = databus.enemys.length; i < il;i++ ) {
       let enemy = databus.enemys[i]

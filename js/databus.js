@@ -43,8 +43,8 @@ export default class DataBus {
    * 此后不进入帧循环
    */
   removeBullets(bullet) {
-    let temp = this.bullets.shift()
-
+    let temp = this.bullets.shift()  //原版的简化处理
+    
     temp.visible = false
 
     this.pool.recover('bullet', bullet)
