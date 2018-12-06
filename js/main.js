@@ -48,13 +48,16 @@ export default class Main {
    * 随着帧数变化的敌机生成逻辑
    * 帧数取模定义成生成的频率
    */
+  
   enemyGenerate() {
     if ( databus.frame % 30 === 0 ) {
       let enemy = databus.pool.getItemByClass('enemy', Enemy)
       enemy.init(6)
+      enemy.shoot(7)
       databus.enemys.push(enemy)
     }
   }
+
 
   // 全局碰撞检测
   collisionDetection() {

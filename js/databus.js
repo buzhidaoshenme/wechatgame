@@ -21,6 +21,7 @@ export default class DataBus {
     this.frame      = 0
     this.score      = 0
     this.bullets    = []
+    this.bullets2   = []
     this.enemys     = []
     this.animations = []
     this.gameOver   = false
@@ -44,9 +45,17 @@ export default class DataBus {
    */
   removeBullets(bullet) {
     let temp = this.bullets.shift()  //原版的简化处理
-    
+
     temp.visible = false
 
     this.pool.recover('bullet', bullet)
+  }
+  
+  removeBullets2(bullet2) {
+    let temp = this.bullets2.shift()  //原版的简化处理
+
+    temp.visible = false
+
+    this.pool.recover('bullet2', bullet2)
   }
 }
