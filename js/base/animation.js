@@ -1,112 +1,102 @@
-import Sprite  from './sprite'
-import DataBus from '../databus'
-
-let databus = new DataBus()
+const Config = require('../common/config.js').Config
 
 const __ = {
-  timer: Symbol('timer'),
+  age: Symbol('age'),
 }
 
 /**
  * 简易的帧动画类实现
  */
-export default class Animation extends Sprite {
-  constructor(imgSrc, width, height) {
-    super(imgSrc, width, height)
+export default class Animation {
+  constructor(frames, frameRate = Config.UpdateRate, sizeRate = 1,
+    loop = false, onFinished = undefined, atlasFrameHeight = 0) {
+    this.frames = frames
+    this.frameRate = frameRate
+    this.sizeRate = sizeRate
+    this[__.age] = undefined
+    this.currIndex = undefined
+    this.onFinished = onFinished
+    this.loop = loop
+    this.atlasFrameHeight = atlasFrameHeight //for 8-direction atlas
+  }
 
-    // 当前动画是否播放中
-    this.isPlaying = false
+  //computed values
+  get MAX_AGE() {
+    if (!Array.isArray(this.frames) || Number.isNaN(this.frameRate))
+      return 0
+    return this.frames.length * 1000 / this.frameRate
+  }
+  get frameIntervalRecipcal(){
+    if (Number.isNaN(this.frameRate))
+      return 0
+    return this.frameRate / 1000
+  }
 
-    // 动画是否需要循环播放
+  isLoaded() {
+    let res = Array.isArray(this.frames) && this.frames.length > 0
+    if (!res) console.log(`Animation is not loaded`)
+    return res
+  }
+
+  isStarted() {
+    return this[__.age] !== undefined
+  }
+
+  isFinished() {
+    return this[__.age] >= this.MAX_AGE
+  }
+
+  start() {
+    this[__.age] = 0
+    this.currIndex = 0
+  }
+
+  stop() {
     this.loop = false
-
-    // 每一帧的时间间隔
-    this.interval = 1000 / 60
-
-    // 帧定时器
-    this[__.timer] = null
-
-    // 当前播放的帧
-    this.index = -1
-
-    // 总帧数
-    this.count = 0
-
-    // 帧图片集合
-    this.imgList = []
-
-    /**
-     * 推入到全局动画池里面
-     * 便于全局绘图的时候遍历和绘制当前动画帧
-     */
-    databus.animations.push(this)
+    this[__.age] = this.MAX_AGE
   }
 
-  /**
-   * 初始化帧动画的所有帧
-   * 为了简单，只支持一个帧动画
-   */
-  initFrames(imgList) {
-    imgList.forEach((imgSrc) => {
-      let img = new Image()
-      img.src = imgSrc
-
-      this.imgList.push(img)
-    })
-
-    this.count = imgList.length
+  update(timeElapsed) {
+    this[__.age] += timeElapsed
+    if (this.isFinished()) {
+      if (this.loop)
+        this.start()
+      else {
+        this.currIndex = this.frames.length - 1
+        this.onFinished && this.onFinished(this)
+      }
+    }
+    else {
+      this.currIndex = Math.floor(this[__.age] * this.frameIntervalRecipcal)
+    }
   }
 
-  // 将播放中的帧绘制到canvas上
-  aniRender(ctx) {
+  // 渲染当前帧
+  render(ctx, x, y, width = 0, height = 0, alignMode = 'topleft', atlasHeightIndex = 0) {
+    if (!this.isLoaded() || !this.isStarted() || this.isFinished())
+      return
+
+    let currFrame = this.frames[this.currIndex]
+    //根据渲染对齐方式，修正渲染位置
+    width = width == 0 ? currFrame.width * this.sizeRate : width,
+    height = height == 0 ? currFrame.height * this.sizeRate : height
+    if (alignMode === 'center'){
+      x -= width / 2
+      y -= height / 2
+    }
+    
+    //asssert(currFrame.image)
     ctx.drawImage(
-      this.imgList[this.index],
-      this.x,
-      this.y,
-      this.width  * 1.2,
-      this.height * 1.2
+      currFrame.image,
+      currFrame.srcX,
+      currFrame.srcY + atlasHeightIndex * this.atlasFrameHeight,
+      currFrame.width,
+      currFrame.height,
+      x + currFrame.offsetX,
+      y + currFrame.offsetY,
+      width,
+      height
     )
   }
 
-  // 播放预定的帧动画
-  playAnimation(index = 0, loop = false) {
-    // 动画播放的时候精灵图不再展示，播放帧动画的具体帧
-    this.visible   = false
-
-    this.isPlaying = true
-    this.loop      = loop
-
-    this.index     = index
-
-    if ( this.interval > 0 && this.count ) {
-      this[__.timer] = setInterval(
-        this.frameLoop.bind(this),
-        this.interval
-      )
-    }
-  }
-
-  // 停止帧动画播放
-  stop() {
-    this.isPlaying = false
-
-    if ( this[__.timer] )
-      clearInterval(this[__.timer])
-  }
-
-  // 帧遍历
-  frameLoop() {
-    this.index++
-
-    if ( this.index > this.count - 1 ) {
-      if ( this.loop ) {
-        this.index = 0
-      }
-
-      else {
-        this.index--
-        this.stop()
-      }
-    }
-  }
 }
