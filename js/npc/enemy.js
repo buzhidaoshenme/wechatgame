@@ -1,6 +1,5 @@
 import Animation from '../base/animation'
 import DataBus   from '../databus'
-import Bullet2 from './bullet2'
 
 const ENEMY_IMG_SRC = 'images/enemy.png'
 const ENEMY_WIDTH   = 60
@@ -45,7 +44,7 @@ export default class Enemy extends Animation {
 
     this.initFrames(frames)
   }
-  
+
   // 每一帧更新子弹位置
   update() {
     this.y += this[__.speed]
@@ -54,17 +53,4 @@ export default class Enemy extends Animation {
     if ( this.y > window.innerHeight + this.height )
       databus.removeEnemey(this)
   }
-  
-  //敌机射击函数
-  shoot(speed) {
-    let bullet2 = databus.pool.getItemByClass('bullet2', Bullet2)
-    bullet2.init(
-      this.x + this.width / 2 - bullet2.width / 2,
-      this.y - 10,
-      speed
-    )
-    databus.bullets2.push(bullet2)
-  }
-  
 }
-

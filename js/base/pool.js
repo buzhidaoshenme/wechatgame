@@ -1,5 +1,6 @@
 const __ = {
   poolDic: Symbol('poolDic')
+  //poolDic: 'poolDic'
 }
 
 /**
