@@ -1,5 +1,6 @@
 import Player from './player/index'
 import Enemy from './npc/enemy'
+import Floatage from './npc/floatage'
 import BackGround from './runtime/background'
 import GameInfo from './runtime/gameinfo'
 import Music from './runtime/music'
@@ -7,6 +8,7 @@ import DataBus from './databus'
 //import Config from './common/config'
 import ControlLayer from './base/controllayer'
 import Util from './common/util'
+import Constants from './common/constants'
 
 let ctx = canvas.getContext('2d')
 let databus = new DataBus()
@@ -18,6 +20,8 @@ const Config = require('./common/config.js').Config
  */
 export default class Main {
   constructor() {
+
+    console.log(`window.innerHeight = ${window.innerHeight}`)
 
     //1.两个主循环
     this.bindloopUpdate = this.loopUpdate.bind(this)
@@ -71,6 +75,8 @@ export default class Main {
 
     //1.需重置的游戏数据、玩家操控处理机制
     this.updateInterval = 1000 / Config.UpdateRate
+    this.updateTimes = 0
+    this.lastRenderTime = new Date().getTime()
     this.bg = new BackGround(ctx)
     this.player = new Player(ctx)
     this.gameinfo = new GameInfo()
@@ -115,10 +121,22 @@ export default class Main {
    * 帧数取模定义成生成的频率
    */
   enemyGenerate() {
-    if (databus.frame % 30 === 0) {
+    if ((this.updateTimes * Constants.Enemy.SpawnRate) % Config.UpdateRate
+      < Constants.Enemy.SpawnRate) {
       let enemy = databus.pool.getItemByClass('enemy', Enemy)
-      enemy.init(6)
+      enemy.init(Constants.Enemy.Speed)
       databus.enemys.push(enemy)
+    }
+  }
+
+  //漂浮物生成逻辑
+  floatageGenerate() {
+    if ((this.updateTimes * Constants.Floatage.SpawnRate) % Config.UpdateRate
+      < Constants.Floatage.SpawnRate
+      && databus.floatages.length < Constants.Floatage.SpawnMax) {
+      let floatage = databus.pool.getItemByClass('floatage', Floatage)
+      floatage.init(Constants.Floatage.Speed)
+      databus.floatages.push(floatage)
     }
   }
 
@@ -130,16 +148,26 @@ export default class Main {
       for (let i = 0, il = databus.enemys.length; i < il; i++) {
         let enemy = databus.enemys[i]
 
-        if (!enemy.isPlaying && enemy.isCollideWith(bullet)) {
-          enemy.playAnimation()
+        if (enemy.isAlive() && enemy.isCollideWith(bullet)) {
+          enemy.destroy()
+          bullet.destroy()
           that.music.playExplosion()
 
-          //bullet.visible = false
-          databus.removeBullets(bullet)
           databus.score += 1
 
           break
         }
+      }
+    })
+
+    databus.floatages.forEach( floatage => {
+      if (this.player.isCollideWith(floatage)) {
+        floatage.dispose()
+        Config.Bullet.Type = Util.findNext(Constants.Bullet.Types, Config.Bullet.Type)
+        Config.Bullet.Speed = Constants.Bullet.SpeedBase * (Constants.Bullet.Types.indexOf(Config.Bullet.Type) + 1)
+        wx.showToast({
+          title: '捕获未知漂浮物'
+        })
       }
     })
 
@@ -220,19 +248,22 @@ export default class Main {
 
     this.bg.update()
 
-    databus.frame++  //IMPROVE
     databus.bullets
       .concat(databus.enemys)
+      .concat(databus.floatages)
       .forEach((item) => {
-        item.update()
+        item.update(timeElapsed)
       })
 
     this.enemyGenerate()
 
+    this.floatageGenerate()
+
     this.collisionDetection()
 
     //即使GameOver仍可能发最后一颗子弹..仇恨的子弹..
-    if (databus.frame % 20 === 0) {
+    if ((this.updateTimes * Constants.Bullet.SpawnRate) % Config.UpdateRate
+       < Constants.Bullet.SpawnRate) {
       this.player.shoot()
       this.music.playShoot()
     }
@@ -244,8 +275,8 @@ export default class Main {
     }
   }
 
-  onConfigChanged(key, value){
-    console.log(`onConfigChanged: ${key}=${value}`)
+  onConfigChanged(key, value, oldValue){
+    console.log(`Main::onConfigChanged: ${key}=${value}`)
     switch (key){
       case 'UpdateRate':
         this.updateInterval = 1000 / Config.UpdateRate
@@ -277,17 +308,16 @@ export default class Main {
 
     databus.bullets
       .concat(databus.enemys)
+      .concat(databus.floatages)
       .forEach((item) => {
-        item.drawToCanvas(ctx)
+        item.render(ctx)
       })
 
-    this.player.drawToCanvas(ctx)
+    this.player.render(ctx)
 
-    databus.animations.forEach((ani) => {
-      if (ani.isPlaying) {
-        ani.aniRender(ctx)
-      }
-    })
+    // databus.animations.forEach((anim) => {
+    //   anim.render(ctx)
+    // })
 
     this.gameinfo.renderGameScore(ctx, databus.score)
 
@@ -300,8 +330,9 @@ export default class Main {
 
   //-- 游戏数据【更新】主循环 ----
   loopUpdate() {
-    let timeElapsed = new Date().getTime() - this.lastUpdateTime
-    this.lastUpdateTime = new Date().getTime()
+    this.updateTimes++
+    let timeElapsed = new Date().getTime() - this.lastRenderTime
+    this.lastRenderTime = new Date().getTime()
     this.update(timeElapsed)
   }
 
