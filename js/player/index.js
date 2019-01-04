@@ -1,6 +1,7 @@
 import Sprite   from '../base/sprite'
 import Bullet   from './bullet'
 import DataBus  from '../databus'
+import Constants from '../common/constants'
 
 const screenWidth    = window.innerWidth
 const screenHeight   = window.innerHeight
@@ -11,6 +12,8 @@ const PLAYER_WIDTH   = 80
 const PLAYER_HEIGHT  = 80
 
 let databus = new DataBus()
+
+const Config = require('../common/config.js').Config
 
 export default class Player extends Sprite {
   constructor() {
@@ -23,10 +26,6 @@ export default class Player extends Sprite {
     // 用于在手指移动的时候标识手指是否已经在飞机上了
     this.touched = false
 
-    this.bullets = []
-
-    // 初始化事件监听
-    this.initEvent()
   }
 
   /**
@@ -74,38 +73,22 @@ export default class Player extends Sprite {
    * 玩家响应手指的触摸事件
    * 改变战机的位置
    */
-  initEvent() {
-    canvas.addEventListener('touchstart', ((e) => {
-      e.preventDefault()
-
-      let x = e.touches[0].clientX
-      let y = e.touches[0].clientY
-
-      //
-      if ( this.checkIsFingerOnAir(x, y) ) {
-        this.touched = true
-
-        this.setAirPosAcrossFingerPosZ(x, y)
-      }
-
-    }).bind(this))
-
-    canvas.addEventListener('touchmove', ((e) => {
-      e.preventDefault()
-
-      let x = e.touches[0].clientX
-      let y = e.touches[0].clientY
-
-      if ( this.touched )
-        this.setAirPosAcrossFingerPosZ(x, y)
-
-    }).bind(this))
-
-    canvas.addEventListener('touchend', ((e) => {
-      e.preventDefault()
-
-      this.touched = false
-    }).bind(this))
+  onTouchEvent(type, x, y, callback) {
+    switch (type){
+      case 'touchstart':
+        if (this.checkIsFingerOnAir(x, y)) {
+          this.touched = true
+          this.setAirPosAcrossFingerPosZ(x, y)
+        }
+        break;
+      case 'touchmove':
+        if (this.touched)
+          this.setAirPosAcrossFingerPosZ(x, y)
+        break;
+      case 'touchend':
+        this.touched = false
+        break;
+    }
   }
 
   /**
@@ -113,14 +96,18 @@ export default class Player extends Sprite {
    * 射击时机由外部决定
    */
   shoot() {
-    let bullet = databus.pool.getItemByClass('bullet', Bullet)
+    let bullets = []
+    let bulletNum = Constants.Bullet.Types.indexOf(Config.Bullet.Type) + 1
+    for (let i = 0; i < bulletNum; i++)
+      bullets.push(databus.pool.getItemByClass('bullet', Bullet))
 
-    bullet.init(
-      this.x + this.width / 2 - bullet.width / 2,
-      this.y - 10,
-      10
-    )
-
-    databus.bullets.push(bullet)
+    bullets.forEach( (bullet, index) => {
+      bullet.init(
+        this.x + this.width * (index+1) / (bulletNum+1) - bullet.width / 2,
+        this.y - 10,
+        Config.Bullet.Speed
+      )
+      databus.bullets.push(bullet)
+    })
   }
 }
