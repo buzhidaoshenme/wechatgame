@@ -15,9 +15,13 @@ export default class BackGround extends Sprite {
   constructor(ctx) {
     super(BG_IMG_SRC, BG_WIDTH, BG_HEIGHT)
 
-    this.top = 0
-
     this.render(ctx)
+
+    this.top = 0
+  }
+
+  onTouchEvent(type, x, y, callback) {
+    //nop
   }
 
   update() {
