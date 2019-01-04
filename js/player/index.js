@@ -1,7 +1,6 @@
 import Sprite   from '../base/sprite'
 import Bullet   from './bullet'
 import DataBus  from '../databus'
-import Constants from '../common/constants'
 
 const screenWidth    = window.innerWidth
 const screenHeight   = window.innerHeight
@@ -97,7 +96,7 @@ export default class Player extends Sprite {
    */
   shoot() {
     let bullets = []
-    let bulletNum = Constants.Bullet.Types.indexOf(Config.Bullet.Type) + 1
+    let bulletNum = (Config.Bullet.Type === 'single') ? 1 : 2
     for (let i = 0; i < bulletNum; i++)
       bullets.push(databus.pool.getItemByClass('bullet', Bullet))
 

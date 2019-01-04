@@ -25,10 +25,6 @@ export default class Bullet extends Sprite {
     this.visible = true
   }
 
-  destroy(){
-    databus.removeBullets(this)
-  }
-
   // 每一帧更新子弹位置
   update() {
     this.y -= this[__.speed]
